@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+.tools/
+.local/
+.logs/
+.backups/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+*.log
+*.pid
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+.artifacts/
+# Original user reference documents are preserved locally, outside the application source.
+/Logo_motion_design_animation_202608302355.mp4
+/Project Synopsis.pdf
+/Smart_Queue_Optimizer.pdf
+/Smart_Queue_Optimizer.pptx
+/Smart_Queue_Optimizer_SWE_Presentation.pptx

@@ -1,0 +1,16 @@
+{
+  "name": "The Cedar Table",
+  "short_name": "Cedar Table",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ee",
+  "theme_color": "#213d33",
+  "icons": [
+    {
+      "src": "/cedar.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

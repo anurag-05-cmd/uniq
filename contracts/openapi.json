@@ -1,0 +1,4084 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "The Cedar Table — Smart Queue API",
+    "version": "1.0.0",
+    "description": "Restaurant queue, arrival, table allocation and dining API. All commands use server sessions and CSRF. Domain commands additionally require Idempotency-Key. Read projections and estimates are advisory; PostgreSQL transactions enforce authoritative state."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Same-origin frontend proxy or backend"
+    }
+  ],
+  "security": [
+    {
+      "session": []
+    }
+  ],
+  "paths": {
+    "/auth/csrf": {
+      "get": {
+        "operationId": "get_auth_csrf",
+        "summary": "Obtain CSRF token",
+        "description": "Obtain CSRF token",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-required-role": "anonymous or authenticated",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Csrf"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "post_auth_register",
+        "summary": "Register a customer",
+        "description": "Register a customer",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-required-role": "anonymous or authenticated",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "post_auth_login",
+        "summary": "Start authenticated session",
+        "description": "Spring Security form login. Persists a server-side session and rotates its identifier. Fetch a fresh CSRF token afterward.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "x-required-role": "anonymous or authenticated",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "post_auth_logout",
+        "summary": "End authenticated session",
+        "description": "End authenticated session",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "authenticated",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "get_me",
+        "summary": "Read current account",
+        "description": "Read current account",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "authenticated",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/restaurant": {
+      "get": {
+        "operationId": "get_restaurant",
+        "summary": "Read restaurant availability and public configuration",
+        "description": "Read restaurant availability and public configuration",
+        "tags": [
+          "Customer"
+        ],
+        "security": [],
+        "x-required-role": "anonymous or authenticated",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Restaurant"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/entries": {
+      "get": {
+        "operationId": "get_me_entries",
+        "summary": "Read own recent waitlist entries",
+        "description": "Read own recent waitlist entries",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "CUSTOMER, HOST or MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Entry"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries": {
+      "post": {
+        "operationId": "post_entries",
+        "summary": "Join remote restaurant waitlist",
+        "description": "One active reservation per customer in the operating session. Physical capacity/accessibility and open service are validated. The idempotency key replays the original result.",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "CUSTOMER, HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries/{id}": {
+      "get": {
+        "operationId": "get_entries_id_",
+        "summary": "Read own entry or staff-authorized entry",
+        "description": "Read own entry or staff-authorized entry",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner, HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries/{id}/check-in": {
+      "post": {
+        "operationId": "post_entries_id_check_in",
+        "summary": "check-in own reservation",
+        "description": "Validate current restaurant QR, authenticated ownership and server-side arrival deadline. Successful check-in replays are idempotent.",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckInInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries/{id}/snooze": {
+      "post": {
+        "operationId": "post_entries_id_snooze",
+        "summary": "snooze own reservation",
+        "description": "Backend enforces lifecycle and optimistic version. Snooze requires existing followers and remaining quota; identity and original join timestamp are preserved.",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries/{id}/cancel": {
+      "post": {
+        "operationId": "post_entries_id_cancel",
+        "summary": "cancel own reservation",
+        "description": "Backend enforces lifecycle and optimistic version. Snooze requires existing followers and remaining quota; identity and original join timestamp are preserved.",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entries/{id}/feedback": {
+      "post": {
+        "operationId": "post_entries_id_feedback",
+        "summary": "Leave feedback after dining completion",
+        "description": "Leave feedback after dining completion",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feedback"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/notifications": {
+      "get": {
+        "operationId": "get_me_notifications",
+        "summary": "Read own durable notifications",
+        "description": "Read own durable notifications",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "CUSTOMER, HOST or MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/notifications/{id}/read": {
+      "post": {
+        "operationId": "post_me_notifications_id_read",
+        "summary": "Mark owned notification read",
+        "description": "Mark owned notification read",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "owner",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/board": {
+      "get": {
+        "operationId": "get_host_board",
+        "summary": "Read operational queue, visits and allocation suggestions",
+        "description": "Read operational queue, visits and allocation suggestions",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostBoard"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/call-next": {
+      "post": {
+        "operationId": "post_host_call_next",
+        "summary": "Assign globally optimized compatible party/table pair",
+        "description": "Omit tableId for venue-wide selection; provide tableId to constrain selection to an available table. Checked-in parties only. Capacity, verified priority, fairness, burst limit and starvation safeguards apply.",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No checked-in party/table pair is currently eligible."
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/assist": {
+      "post": {
+        "operationId": "post_host_entries_id_assist",
+        "summary": "Host assist reservation",
+        "description": "Host assist reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistedInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/priority": {
+      "post": {
+        "operationId": "post_host_entries_id_priority",
+        "summary": "Host priority reservation",
+        "description": "Host priority reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriorityInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/assign": {
+      "post": {
+        "operationId": "post_host_entries_id_assign",
+        "summary": "Host assign reservation",
+        "description": "Host assign reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/seat": {
+      "post": {
+        "operationId": "post_host_entries_id_seat",
+        "summary": "Host seat reservation",
+        "description": "Host seat reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/dining": {
+      "post": {
+        "operationId": "post_host_entries_id_dining",
+        "summary": "Host dining reservation",
+        "description": "Host dining reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/complete": {
+      "post": {
+        "operationId": "post_host_entries_id_complete",
+        "summary": "Host complete reservation",
+        "description": "Host complete reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChangeInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/entries/{id}/no-show": {
+      "post": {
+        "operationId": "post_host_entries_id_no_show",
+        "summary": "Host no-show reservation",
+        "description": "Host no-show reservation",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistedInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/host/tables/{id}/availability": {
+      "post": {
+        "operationId": "post_host_tables_id_availability",
+        "summary": "Change unoccupied table availability",
+        "description": "Change unoccupied table availability",
+        "tags": [
+          "Host"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "HOST or MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantTable"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/analytics": {
+      "get": {
+        "operationId": "get_admin_analytics",
+        "summary": "Read trailing 24-hour restaurant analytics",
+        "description": "Wait/dining averages, throughput by operating hours, table utilization by enabled intervals, queue trends and terminal counts. Zero utilization/throughput denominator produces null.",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Analytics"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/audit": {
+      "get": {
+        "operationId": "get_admin_audit",
+        "summary": "Read latest 200 audit events",
+        "description": "Read latest 200 audit events",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEvent"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/restaurant": {
+      "put": {
+        "operationId": "put_admin_restaurant",
+        "summary": "Update restaurant details",
+        "description": "Update restaurant details",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestaurantInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/policy": {
+      "put": {
+        "operationId": "put_admin_policy",
+        "summary": "Update validated queue policies",
+        "description": "Update validated queue policies",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Policy"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/areas": {
+      "post": {
+        "operationId": "post_admin_areas",
+        "summary": "Create dining area",
+        "description": "Create dining area",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Area"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AreaInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tables": {
+      "post": {
+        "operationId": "post_admin_tables",
+        "summary": "Create configured restaurant table",
+        "description": "Create configured restaurant table",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantTable"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tables/{id}": {
+      "put": {
+        "operationId": "put_admin_tables_id_",
+        "summary": "Update unoccupied table configuration",
+        "description": "Update unoccupied table configuration",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestaurantTable"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableUpdateInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/session/open": {
+      "post": {
+        "operationId": "post_admin_session_open",
+        "summary": "open operating session",
+        "description": "open operating session",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/session/close": {
+      "post": {
+        "operationId": "post_admin_session_close",
+        "summary": "close operating session",
+        "description": "close operating session",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/session/recover": {
+      "post": {
+        "operationId": "post_admin_session_recover",
+        "summary": "recover operating session",
+        "description": "recover operating session",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/staff": {
+      "get": {
+        "operationId": "get_admin_staff",
+        "summary": "List staff and display accounts",
+        "description": "List staff and display accounts",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_admin_staff",
+        "summary": "Provision staff or display account",
+        "description": "Provision staff or display account",
+        "tags": [
+          "Manager"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/display/board": {
+      "get": {
+        "operationId": "get_display_board",
+        "summary": "Read anonymous calls and rotating arrival QR",
+        "description": "Never contains customer identity. Refresh regularly: challenge rotates every 30 seconds and expires after 45 seconds; multiple customers may use one valid challenge.",
+        "tags": [
+          "Display"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "DISPLAY, HOST or MANAGER",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayBoard"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "operationId": "get_events",
+        "summary": "Subscribe to authorized live refresh signals",
+        "description": "SSE event refresh carries only revision and serverTime. Reconnect and GET authorized resources to resynchronize; never infer domain success solely from the stream.",
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "authenticated",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "SSE stream with refresh events and heartbeat updates.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "example": "event: refresh\ndata: {\"revision\":12,\"serverTime\":\"2026-09-19T12:00:00Z\"}\n\n"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/add": {
+      "post": {
+        "operationId": "post_demo_add",
+        "summary": "Simulate add",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/rush": {
+      "post": {
+        "operationId": "post_demo_rush",
+        "summary": "Simulate rush",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/occupy": {
+      "post": {
+        "operationId": "post_demo_occupy",
+        "summary": "Simulate occupy",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/free": {
+      "post": {
+        "operationId": "post_demo_free",
+        "summary": "Simulate free",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/complete": {
+      "post": {
+        "operationId": "post_demo_complete",
+        "summary": "Simulate complete",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/no-show": {
+      "post": {
+        "operationId": "post_demo_no_show",
+        "summary": "Simulate no-show",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/activity": {
+      "post": {
+        "operationId": "post_demo_activity",
+        "summary": "Simulate activity",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/reset": {
+      "post": {
+        "operationId": "post_demo_reset",
+        "summary": "Simulate reset",
+        "description": "Available only in demo/dev profile; otherwise 404. Manager-authorized simulation is audited. Reset operates on demonstration activity.",
+        "tags": [
+          "Development simulator"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-required-role": "MANAGER",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Validation, authorization, expired deadline, stale version, invariant, idempotency or throttling error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationInput"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "SESSION",
+        "description": "Spring Session JDBC cookie. HttpOnly, SameSite=Lax; secure outside local demo profile."
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": "Unique command key per actor/route. Reuse exactly the same key and body to replay a command; changed body with the same key returns 409."
+      },
+      "CsrfToken": {
+        "name": "X-CSRF-TOKEN",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Obtain token/headerName from GET /auth/csrf. Fetch a fresh token after login. Send session cookies."
+      },
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "code": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "Csrf": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "headerName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "headerName"
+        ],
+        "additionalProperties": false
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "HOST",
+              "MANAGER",
+              "DISPLAY"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 72,
+            "description": "Maximum 72 UTF-8 bytes. Passwords are hashed with BCrypt."
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "displayName"
+        ],
+        "additionalProperties": false
+      },
+      "LoginInput": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Policy": {
+        "type": "object",
+        "properties": {
+          "arrivalLeadMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "arrivalGraceMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "callGraceMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "maxSnoozes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "snoozeMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "snoozeSpots": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "priorityBurstLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2
+          },
+          "agingMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "starvationMinutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 120
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 100
+          },
+          "sampleHorizonMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 1440
+          },
+          "minimumSamples": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "defaultDiningMinutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 180
+          },
+          "maxActiveParties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "capacityWastePenalty": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "arrivalLeadMinutes",
+          "arrivalGraceMinutes",
+          "callGraceMinutes",
+          "maxSnoozes",
+          "snoozeMinutes",
+          "snoozeSpots",
+          "priorityBurstLimit",
+          "agingMinutes",
+          "starvationMinutes",
+          "sampleSize",
+          "sampleHorizonMinutes",
+          "minimumSamples",
+          "defaultDiningMinutes",
+          "maxActiveParties",
+          "capacityWastePenalty"
+        ],
+        "additionalProperties": false
+      },
+      "PolicyInput": {
+        "type": "object",
+        "properties": {
+          "arrivalLeadMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "arrivalGraceMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "callGraceMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "maxSnoozes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "snoozeMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "snoozeSpots": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "priorityBurstLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2
+          },
+          "agingMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "starvationMinutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 120
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 100
+          },
+          "sampleHorizonMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 1440
+          },
+          "minimumSamples": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "defaultDiningMinutes": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 180
+          },
+          "maxActiveParties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "capacityWastePenalty": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "arrivalLeadMinutes",
+          "arrivalGraceMinutes",
+          "callGraceMinutes",
+          "maxSnoozes",
+          "snoozeMinutes",
+          "snoozeSpots",
+          "priorityBurstLimit",
+          "agingMinutes",
+          "starvationMinutes",
+          "sampleSize",
+          "sampleHorizonMinutes",
+          "minimumSamples",
+          "defaultDiningMinutes",
+          "maxActiveParties",
+          "capacityWastePenalty",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "description": "minimumSamples must not exceed sampleSize. Session policy updates are audited."
+      },
+      "Area": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "AreaInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "RestaurantTable": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "areaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "areaName": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "accessible": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "ASSIGNED",
+              "OCCUPIED",
+              "UNAVAILABLE"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "areaId",
+          "areaName",
+          "capacity",
+          "accessible",
+          "status",
+          "enabled",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "TableInput": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "areaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "accessible": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "number",
+          "areaId",
+          "capacity"
+        ],
+        "additionalProperties": false
+      },
+      "TableUpdateInput": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "areaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "accessible": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "number",
+          "areaId",
+          "capacity",
+          "expectedVersion",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "Restaurant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "demoMode": {
+            "type": "boolean"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sessionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "sessionStatus": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CLOSING",
+              "CLOSED"
+            ]
+          },
+          "recoveryRequired": {
+            "type": "boolean"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/Policy"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Area"
+            }
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestaurantTable"
+            }
+          },
+          "waitingCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "location",
+          "timezone",
+          "description",
+          "open",
+          "demoMode",
+          "serverTime",
+          "sessionId",
+          "sessionStatus",
+          "recoveryRequired",
+          "policy",
+          "areas",
+          "tables",
+          "waitingCount"
+        ],
+        "additionalProperties": false
+      },
+      "RestaurantInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Valid IANA timezone, for example Asia/Kolkata."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1000
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "location",
+          "timezone",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "Entry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "partySize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "preference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accessible": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "WAITING",
+              "ARRIVAL_WINDOW",
+              "CHECKED_IN",
+              "SNOOZED",
+              "CALLED",
+              "SEATED",
+              "DINING",
+              "COMPLETED",
+              "CANCELLED",
+              "EXPIRED",
+              "NO_SHOW"
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fairnessSince": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checkedInAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "arrivalWindowOpenedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "arrivalDeadline": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "callDeadline": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "snoozeReleaseAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "snoozeCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "snoozesRemaining": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "tableId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "tableNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "areaName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "etaSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "estimatedStartAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "computedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "estimateSource": {
+            "type": "string"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "assumesArrival": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "terminalReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "partySize",
+          "status",
+          "joinedAt",
+          "fairnessSince",
+          "snoozeCount",
+          "priority",
+          "version",
+          "etaSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "JoinInput": {
+        "type": "object",
+        "properties": {
+          "partySize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "preference": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 100,
+            "description": "ANY or a configured dining-area name. Soft preference."
+          },
+          "accessible": {
+            "type": "boolean",
+            "description": "Hard accessibility requirement."
+          }
+        },
+        "required": [
+          "partySize"
+        ],
+        "additionalProperties": false
+      },
+      "ChangeInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "EntryChangeInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
+      "CheckInInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "challenge"
+        ],
+        "additionalProperties": false
+      },
+      "AssistedInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "AssignmentInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "tableId",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "PriorityInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 500
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "priority",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "AvailabilityInput": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "UNAVAILABLE"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "status",
+          "reason",
+          "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
+      "Visit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tableNumber": {
+            "type": "string"
+          },
+          "partySize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "entryId",
+          "token",
+          "tableId",
+          "tableNumber",
+          "partySize",
+          "startedAt",
+          "completedAt",
+          "durationSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "Suggestion": {
+        "type": "object",
+        "properties": {
+          "entryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "score": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entryId",
+          "tableId",
+          "score",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "HostBoard": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            }
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RestaurantTable"
+            }
+          },
+          "visits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Visit"
+            }
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Suggestion"
+            }
+          }
+        },
+        "required": [
+          "entries",
+          "tables",
+          "visits",
+          "revision",
+          "serverTime",
+          "suggestions"
+        ],
+        "additionalProperties": false
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "body",
+          "createdAt",
+          "readAt"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackInput": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "additionalProperties": false
+      },
+      "Feedback": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "rating",
+          "comment"
+        ],
+        "additionalProperties": false
+      },
+      "SessionInput": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "graceSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 1800
+          },
+          "opensAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closesAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "StaffInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 72
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "HOST",
+              "MANAGER",
+              "DISPLAY"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "displayName",
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "AuditEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "details": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "actor",
+          "reason",
+          "occurredAt",
+          "entryId",
+          "details"
+        ],
+        "additionalProperties": false
+      },
+      "Analytics": {
+        "type": "object",
+        "properties": {
+          "averageWaitMinutes": {
+            "type": "number"
+          },
+          "averageDiningMinutes": {
+            "type": "number"
+          },
+          "completedParties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cancellations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "noShows": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "utilizationPercent": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "throughputPerHour": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "queueTrends": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hour": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "joined": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "completed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "hour",
+                "joined",
+                "completed"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "tableUtilization": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tableNumber": {
+                  "type": "string"
+                },
+                "utilizationPercent": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "tableNumber",
+                "utilizationPercent"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "sampleCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "availableTableSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "serviceOpenSeconds": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "averageWaitMinutes",
+          "averageDiningMinutes",
+          "completedParties",
+          "cancellations",
+          "noShows",
+          "utilizationPercent",
+          "throughputPerHour",
+          "queueTrends",
+          "tableUtilization",
+          "sampleCount",
+          "asOf",
+          "periodFrom",
+          "availableTableSeconds",
+          "serviceOpenSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "DisplayBoard": {
+        "type": "object",
+        "properties": {
+          "restaurantName": {
+            "type": "string"
+          },
+          "called": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string"
+                },
+                "tableNumber": {
+                  "type": "string"
+                },
+                "areaName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "token",
+                "tableNumber",
+                "areaName"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "challenge": {
+            "type": "string",
+            "description": "Short-lived venue challenge; never log or persist its plaintext."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "restaurantName",
+          "called",
+          "challenge",
+          "expiresAt",
+          "serverTime"
+        ],
+        "additionalProperties": false
+      },
+      "SimulationInput": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "tableId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "RefreshEvent": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "revision",
+          "serverTime"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

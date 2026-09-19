@@ -1,0 +1,19 @@
+# Dependency selection evidence
+
+Checked 2026-09-19. Use the stable compatible release family, then pin exact versions. Runtime measurements were made on the native Windows machine.
+
+- **Java 25.0.3:** the installed Eclipse Adoptium JDK reports Java 25.0.3. Java 25 is the requested language/runtime baseline.
+- **Spring Boot 4.1.1:** parent POM and [official BOM](https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.1/spring-boot-dependencies-4.1.1.pom) resolve from Maven Central. Its managed versions are Spring Framework 7.0.9, Security 7.1.1, Spring Data 2026.0.1, Hibernate 7.4.5.Final, Flyway 12.4.0, PostgreSQL JDBC 42.7.13 and JUnit Jupiter 6.0.3. Framework components are deliberately not overridden independently.
+- **Maven 3.9.16:** the [Apache download page](https://maven.apache.org/download.cgi) identifies this as the current recommended stable release. Maven 3.10 and 4 are preview releases and were excluded. The downloaded archive's SHA512 was checked against Maven Central, then its SHA256 pinned in `backend/.mvn/wrapper/maven-wrapper.properties`.
+- **Maven Wrapper 3.3.4:** [official wrapper download](https://maven.apache.org/tools/wrapper/download.cgi). Authentic only-script distribution obtained from Maven Central; no globally installed Maven is required.
+- **PostgreSQL 18.6:** [official version policy](https://www.postgresql.org/support/versioning/) lists 18.6 as current stable. [Official Windows page](https://www.postgresql.org/download/windows/) links to EDB; [EDB binary downloads](https://www.enterprisedb.com/download-postgresql-binaries) provided the native Windows x64 archive. `postgres --version` verified PostgreSQL18.6. The local server uses SCRAM authentication and localhost binding.
+- **Bun 1.4.2:** verified against the [official Bun releases](https://github.com/oven-sh/bun/releases); the workspace-local runtime reports 1.4.2. No global runtime installation was replaced.
+- **React 19.3.0, React DOM 19.3.0, TypeScript 7.0.2, Vite 8.3.0, @vitejs/plugin-react 6.1.1:** stable registry release tags and peer requirements were checked during implementation. Exact versions are pinned in `frontend/package.json` and resolved in the Bun lockfile.
+- **Playwright 1.63.0:** exact frontend test dependency. QR generation uses `qrcode`1.5.4; browser scanning uses `@zxing/browser`0.2.1 and `@zxing/library`0.23.0, avoiding a remote QR generation service.
+
+`backend/mvnw.cmd --version` successfully verified Maven3.9.16 on Java25.0.3. Native PostgreSQL18.6 was initialized and tested with both the application and dedicated test databases. The setup helper was rerun successfully to verify it is idempotent. Final application test results belong in the verification handoff rather than being inferred from dependency resolution.
+
+Native backup/restore drill also passed: 5 accounts, 24 historical visits, 8 tables and 24 waitlist records matched after restoring into a fresh disposable database; zero conflicting table occupants. The temporary restore database was removed and the development database preserved.
+
+
+Native CI action pins were verified through official GitHub release and commit APIs on 2026-09-19: [checkout v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) at `3d3c42e5aac5ba805825da76410c181273ba90b1`; [setup-java v6.0.1](https://github.com/actions/setup-java/releases/tag/v6.0.1) at `de7274f081f381c8f8158605e0321c36c376e2e6`; [setup-bun v2.2.0](https://github.com/oven-sh/setup-bun/releases/tag/v2.2.0) at `0c5077e51419868618aeaa5fe8019c62421857d6`; [upload-artifact v7.0.1](https://github.com/actions/upload-artifact/releases/tag/v7.0.1) at `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`. All official release responses reported `prerelease=false`. The workflow itself has not been executed on a GitHub-hosted runner from this local workspace.
