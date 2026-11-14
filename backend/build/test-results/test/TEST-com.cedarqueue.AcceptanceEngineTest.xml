@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.cedarqueue.AcceptanceEngineTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-09-21T04:36:27.547Z" hostname="LAPTOP-054GI11I" time="0.147">
+  <properties/>
+  <testcase name="smallestSuitableTableWinsForAnOtherwiseEqualChoice()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.027"/>
+  <testcase name="snoozeBarrierCannotHoldPartyPastPersistedReleaseDeadline()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.014"/>
+  <testcase name="burstRuleDoesNotBlockACompatiblePartyForAnIncompatibleOrdinaryParty()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="partySizePoolAndFallbackAreExplicit()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="oneBusyTableProducesExactWaitsAndDoesNotMutateInputs()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.002"/>
+  <testcase name="terminalStatesNeverResurrect()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.005"/>
+  <testcase name="stableSequenceBreaksEqualScoresIndependentlyOfInputOrder()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="rollingWindowKeepsNewestTwentyAndRejectsFutureOrOldSamples()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="noCompatibleCapacityIsUnknownNotAZeroWait()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="rollingMeanAndResidualMatchBlueprintExample()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.002"/>
+  <testcase name="priorityFloodStillProvidesOrdinaryOpportunityEveryThirdDispatch()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.052"/>
+  <testcase name="remoteForecastDisclosesArrivalAssumption()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.002"/>
+  <testcase name="oldestLargePartyGetsStarvationProtection()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="remotePartyCannotBeCalledAndCompletionRequiresSeating()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.003"/>
+  <testcase name="capacityAndAccessibilityAreHardConstraints()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="preferenceCannotOverrideInsufficientCapacity()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <testcase name="overdueOrdinaryPartyCannotBeBypassedByOverduePriorityAfterBurst()" classname="com.cedarqueue.AcceptanceEngineTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

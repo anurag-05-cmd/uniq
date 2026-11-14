@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.cedarqueue.RequestGuardFilterTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-21T04:36:27.715Z" hostname="LAPTOP-054GI11I" time="0.168">
+  <properties/>
+  <testcase name="structuredRequestLogContainsCorrelationAndTemplateButNoSecrets()" classname="com.cedarqueue.RequestGuardFilterTest" time="0.162"/>
+  <testcase name="identicalIntentRetriesDoNotSpendAdditionalJoinQuota()" classname="com.cedarqueue.RequestGuardFilterTest" time="0.002"/>
+  <testcase name="loginGuardCountsFailuresAndKeepsAccountsIndependent()" classname="com.cedarqueue.RequestGuardFilterTest" time="0.001"/>
+  <system-out><![CDATA[10:06:27.872 [Test worker] INFO com.cedarqueue.RequestGuardFilter -http.method="POST" http.route="/api/v1/entries/{id}/check-in" http.status_code="200" duration_ms="9.744"- HTTP request completed
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

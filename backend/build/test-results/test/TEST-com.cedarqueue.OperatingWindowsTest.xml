@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.cedarqueue.OperatingWindowsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-21T04:36:27.697Z" hostname="LAPTOP-054GI11I" time="0.017">
+  <properties/>
+  <testcase name="earlyClosureAndNextSessionExcludeTheClosedGap()" classname="com.cedarqueue.OperatingWindowsTest" time="0.01"/>
+  <testcase name="overlappingBackdatedSessionsAreCountedOnlyOnce()" classname="com.cedarqueue.OperatingWindowsTest" time="0.002"/>
+  <testcase name="futureCancelledSessionHasNoOperatingHours()" classname="com.cedarqueue.OperatingWindowsTest" time="0.001"/>
+  <testcase name="closingServiceContinuesUntilActualCompletion()" classname="com.cedarqueue.OperatingWindowsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

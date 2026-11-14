@@ -17,7 +17,7 @@ if (-not $SkipIntegration) {
 }
 Push-Location (Join-Path $CedarRoot 'backend')
 try {
-    if ($SkipIntegration) { & '.\mvnw.cmd' -B -ntp test } else { & '.\mvnw.cmd' -B -ntp -Pintegration verify }
+    if ($SkipIntegration) { & '.\gradlew.bat' test } else { & '.\gradlew.bat' check }
     Assert-CedarExit 'Backend tests'
 } finally { Pop-Location }
 Push-Location (Join-Path $CedarRoot 'frontend')

@@ -10,11 +10,11 @@ function Stop-CedarProcessTree([int]$ProcessId) {
 if (Test-Path -LiteralPath $processFile) {
     $record = Get-Content -LiteralPath $processFile -Raw | ConvertFrom-Json
     if ($record.root -ne $CedarRoot) { throw 'Process record belongs to a different workspace.' }
-    foreach ($name in @('backend','frontend')) {
+    foreach ($name in @('backend','frontend','ngrok')) {
         $processId = [int]$record.$name
+        if (-not $processId) { continue }
         $process = Get-CimInstance Win32_Process -Filter "ProcessId = $processId" -ErrorAction SilentlyContinue
-        $expected = Join-Path $CedarRoot "scripts/run-$name.ps1"
-        if ($process -and $process.CommandLine.Contains($expected)) { Stop-CedarProcessTree $processId }
+        if ($process) { Stop-CedarProcessTree $processId }
     }
     Remove-Item -LiteralPath $processFile
 }

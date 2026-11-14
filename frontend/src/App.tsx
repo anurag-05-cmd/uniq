@@ -137,9 +137,20 @@ function Login() {
               Password: <code>CedarDemo!2026</code>
             </p>
             {["customer", "host", "manager", "display"].map((role) => (
-              <p key={role}>
-                <strong>{role}</strong> <code>{role}@cedar.local</code>
-              </p>
+              <button
+                key={role}
+                type="button"
+                className="button outline"
+                style={{ display: "block", width: "100%", marginBottom: "0.5rem" }}
+                onClick={() => {
+                  const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+                  const passwordInput = document.querySelector('input[name="password"]') as HTMLInputElement;
+                  if (emailInput) emailInput.value = `${role}@cedar.local`;
+                  if (passwordInput) passwordInput.value = "CedarDemo!2026";
+                }}
+              >
+                Auto-fill {role} (<code>{role}@cedar.local</code>)
+              </button>
             ))}
           </details>
         )}

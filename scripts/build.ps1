@@ -10,7 +10,7 @@ try {
 } finally { Pop-Location }
 Push-Location (Join-Path $CedarRoot 'backend')
 try {
-    & '.\mvnw.cmd' -B -ntp package
+    & '.\gradlew.bat' build -x integrationTest
     Assert-CedarExit 'Backend production build'
 } finally { Pop-Location }
-Write-Host 'Artifacts: frontend/dist and backend/target/cedar-queue-1.0.0.jar'
+Write-Host 'Artifacts: frontend/dist and backend/build/libs/cedar-queue-1.0.0.jar'

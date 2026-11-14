@@ -319,3 +319,5 @@ Browser camera access generally requires HTTPS, except localhost. For an HTTP LA
 - **Camera permission unavailable:** use HTTPS, the phone's native QR scanner, pasted decoded URL, or assisted check-in.
 - **ETA changes:** projections respond to completions, arrivals, fairness, table status and queue changes. Low sample counts use the configured fallback and remain explicitly estimates.
 - **First startup is slow:** initial Maven/Bun downloads require network access. Later runs reuse normal caches; inspect logs before restarting.
+#   u n i q  
+ 
