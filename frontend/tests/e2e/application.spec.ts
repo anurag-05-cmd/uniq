@@ -15,7 +15,7 @@ test("customer home is usable at phone width with no horizontal overflow", async
   await login(page, "customer");
   await expect(
     page.getByRole("heading", {
-      name: /Your table, in good time|We’re saving you a place/,
+      name: /Your table, in good time|saving you a place/,
     }),
   ).toBeVisible();
   await expect(
@@ -83,6 +83,9 @@ test("manager can inspect every configuration surface and generate demo activity
     page.getByRole("heading", { name: "Operational history" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Demo studio" }).click();
+  await page.getByRole("button", { name: "Reset / reseed demo" }).click();
+  await page.getByRole("button", { name: "Reset demo now" }).click();
+  await expect(page.getByText("Demo reset complete.")).toBeVisible();
   await page.getByLabel("Number of parties", { exact: true }).fill("1");
   await page.getByRole("button", { name: /Add random customer/ }).click();
   await expect(
